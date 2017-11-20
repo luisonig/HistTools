@@ -10,6 +10,7 @@ import numpy as np
 import matplotlib.pyplot as plt
 import matplotlib.ticker as mticker
 from collections import Iterable
+from jinja2 import Environment, FileSystemLoader, Template
 
 __all__ = ['Alphas', 'PwgHist','PwgPlot']
 
@@ -167,6 +168,7 @@ class PwgPlot:
         self.html = False
         self.overwrite = False
         self.show = False
+        self.plotdata = []
         
         if histo:
             if isinstance(histo,list):
@@ -224,6 +226,7 @@ class PwgPlot:
                     numFound+=1
                     print("Found plot "+title.rstrip("\n")+" in "+self.hlist[i].name.rstrip("\n"))
                     data=self.hlist[i].hdata[title]
+                    self._AddToPlotdata(self.hlist[i].name.rstrip("\n"), title.rstrip("\n"), data)
                     (xl,xh,y,erry)=data
                     if numFound == 1:
                         valueRef=y
@@ -273,6 +276,7 @@ class PwgPlot:
                     #plt.tight_layout(h_pad=0.0)
                     outfile=self.outdir+"/"+title.replace(" ","_")
                     self._saveFigure(figure,outfile,self.format)
+            self._generatePlotfile(self.outdir,title)
 
         if self.html:
             self._WriteHTML(self.outdir,self.hlist[0].horder,self.format)
@@ -280,6 +284,7 @@ class PwgPlot:
         if self.show:
             import webbrowser
             webbrowser.open(self.outdir+"/index.html")
+
         
             
     def _saveFigure(self, fig, path, ext='png', close=True):
@@ -377,19 +382,34 @@ class PwgPlot:
         '''
         Returns a HTML command to include an image on a webpage.
         '''
-        return '<div style=\"float:left; font-size:smaller; font-weight:bold;\">'+'\n'+'<a href=\"#'+plot+'\">&#9875;</a> '+plot.rpartition('.')[0]+':<br>'+'\n'+'<a name=\"'+plot+'\"><a href=\"'+plot+'\">'+'\n'+'<img HEIGHT=500 src=\"'+plot+'\">'+'\n'+'</a></a>'+'\n'+'</div>'+'\n'
+        title, ext = os.path.splitext(plot)
+        string  = '<div style=\"float:left; font-size:smaller; font-weight:bold;\">'+'\n'
+        string += '<a href=\"'+title+'-source.py\">&#8984</a>'+'\n'
+        string += '<a href=\"#'+plot+'\">&#9875;</a> '+plot.rpartition('.')[0]+':<br>'+'\n'
+        string += '<a name=\"'+plot+'\"><a href=\"'+plot+'\">'+'\n'
+        string += '<img HEIGHT=500 src=\"'+plot+'\">'+'\n'+'</a></a>'+'\n'+'</div>'+'\n'
+        return string
 
 
-    # def _generatePlotfile(self):
-    #     from jinja2 import Environment, FileSystemLoader, select_autoescape
-    #     path=os.getcwd()
-    #     env = Environment(
-    #         loader=FileSystemLoader(path),
-    #         #autoescape=select_autoescape(['html', 'xml'])
-    #         )
-    #     template = env.get_template('plottemplate.py')
-        
-                
+    def _AddToPlotdata(self, filename, title, data):
+        template = Template("    plot.addData('{{ filename }}',\n                 {'{{ title }}': np.transpose(\n\t\t     {{ data }} )})")
+        np.set_printoptions(edgeitems=4,linewidth=100)
+        self.plotdata.append(template.render(filename=filename,
+                                             title=title,
+                                             data=np.array2string(np.transpose(data), separator=',', prefix='                    ')))
+    
+    def _generatePlotfile(self, outdir, title):
+        path=os.path.dirname(os.path.abspath(__file__))
+        env = Environment(loader=FileSystemLoader(path))
+        plotfile = open(outdir+'/'+title+'-source.py','w')
+        template = env.get_template('plottemplate.py')
+        data = ''
+        #print self.plotdata
+        for dataset in self.plotdata:
+            data += dataset+"\n\n"
+        plotfile.write(template.render(title=title,data=data))
+        del self.plotdata[:]
+
         
     
 if __name__ == '__main__':
@@ -406,4 +426,3 @@ if __name__ == '__main__':
     file = args.infile
 
     hist = PwgHist(file[0])
-
