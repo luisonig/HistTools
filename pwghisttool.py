@@ -1,6 +1,6 @@
 #! /usr/bin/env python
 
-import sys, os  # ,logging,time
+import sys, os
 import copy
 import re
 import logging
@@ -107,6 +107,10 @@ class PwgHist:
             sio.write("#---\n\n\n")
         return sio.getvalue()
 
+    def append(self, histname, histo):
+        self.horder.append(histname)
+        self.hdata[histname]=np.transpose(histo)
+    
     def write(self, file, sort=False):
         sio = cStringIO.StringIO()
         if sort:
@@ -117,7 +121,7 @@ class PwgHist:
             data = self.hdata[histname]
             file.write("# %s index %s\n" % (histname,index))
             np.savetxt(file, np.transpose(data), fmt='%.9E')
-            file.write("\n\n\n")
+            file.write("\n\n")
         file.close()
 
     def __add__(self, other):
@@ -393,7 +397,7 @@ class PwgPlot:
 
     def _AddToPlotdata(self, filename, title, data):
         template = Template("    plot.addData('{{ filename }}',\n                 {'{{ title }}': np.transpose(\n\t\t     {{ data }} )})")
-        np.set_printoptions(edgeitems=4,linewidth=100)
+        np.set_printoptions(edgeitems=4,linewidth=100,threshold=np.nan)
         self.plotdata.append(template.render(filename=filename,
                                              title=title,
                                              data=np.array2string(np.transpose(data), separator=',', prefix='                    ')))

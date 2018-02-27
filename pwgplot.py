@@ -9,7 +9,7 @@ if __name__ == '__main__':
     ## Argument parser
     from argparse import ArgumentParser, FileType
 
-    parser = ArgumentParser(description='Prints histogram "histo"')
+    parser = ArgumentParser(description='Plots histogram "histo"')
     
     parser.add_argument('-w', '--overwrite', action='store_true', dest="OVERWRITE",
                         default=False, help="whether to overwrite an existing folder [NO].")
