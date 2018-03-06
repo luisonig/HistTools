@@ -280,7 +280,7 @@ class PwgPlot:
                     #plt.tight_layout(h_pad=0.0)
                     outfile=self.outdir+"/"+title.replace(" ","_")
                     self._saveFigure(figure,outfile,self.format)
-            self._generatePlotfile(self.outdir,title)
+            self._generatePlotfile(self.outdir,title,'plottemplate.py')
 
         if self.html:
             self._WriteHTML(self.outdir,self.hlist[0].horder,self.format)
@@ -402,11 +402,11 @@ class PwgPlot:
                                              title=title,
                                              data=np.array2string(np.transpose(data), separator=',', prefix='                    ')))
     
-    def _generatePlotfile(self, outdir, title):
+    def _generatePlotfile(self, outdir, title, template):
         path=os.path.dirname(os.path.abspath(__file__))
         env = Environment(loader=FileSystemLoader(path))
         plotfile = open(outdir+'/'+title+'-source.py','w')
-        template = env.get_template('plottemplate.py')
+        template = env.get_template(template)
         data = ''
         #print self.plotdata
         for dataset in self.plotdata:
